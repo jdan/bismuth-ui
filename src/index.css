@@ -16,3 +16,12 @@ code {
 div {
   padding: 10px;
 }
+
+.ui div {
+  border: 1px solid black;
+}
+
+input {
+  width: 50px;
+  height: 20px;
+}

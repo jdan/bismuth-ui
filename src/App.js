@@ -1,24 +1,37 @@
 import React, { useState } from "react";
 
 const Across = ({ children }) => (
-  <div style={{ display: "flex" }}>{children}</div>
+  <section style={{ display: "flex" }}>{children}</section>
 );
 const Down = ({ children }) => (
-  <div style={{ display: "flex", flexDirection: "column" }}>{children}</div>
+  <section style={{ display: "flex", flexDirection: "column" }}>
+    {children}
+  </section>
 );
 
 const Application = ({ op, args, onChange }) => (
   <Across>
-    {render(op, newOp => onChange({ op: newOp, args }))}
-    <Down>
-      {args.map((arg, i) =>
-        render(arg, newArg =>
-          onChange({
-            op,
-            args: [...args.slice(0, i), newArg, ...args.slice(i + 1)]
-          })
-        )
+    <div>
+      {render(op, newOp =>
+        onChange({
+          type: "Application",
+          op: newOp,
+          args
+        })
       )}
+    </div>
+    <Down>
+      {args.map((arg, i) => (
+        <div key={i}>
+          {render(arg, newArg =>
+            onChange({
+              type: "Application",
+              op,
+              args: [...args.slice(0, i), newArg, ...args.slice(i + 1)]
+            })
+          )}
+        </div>
+      ))}
     </Down>
   </Across>
 );
@@ -60,24 +73,40 @@ function render(node, onChange) {
   }
 }
 
+const stdlib = {
+  "+": (a, b) => a + b,
+  "-": (a, b) => a - b,
+  "*": (a, b) => a * b,
+  "/": (a, b) => a / b
+};
+
 export default () => {
-  const [ast, setAst] = useState({ type: "Number", value: 6 });
+  const [ast, setAst] = useState({
+    type: "Application",
+    op: { type: "Variable", name: "+" },
+    args: [{ type: "Number", value: 10 }, { type: "Number", value: 100 }]
+  });
 
   return (
-    <div>
-      {render(ast, setAst)}
-      <div>Result: {JSON.stringify(evalAst(ast, []))}</div>
-    </div>
+    <main>
+      <div className="ui">{render(ast, setAst)}</div>
+      <div>Result: {JSON.stringify(evalAst(ast, stdlib))}</div>
+      <div>
+        <pre>
+          <code>{JSON.stringify(ast, null, 2)}</code>
+        </pre>
+      </div>
+    </main>
   );
 };
 
 function evalAst(ast, env) {
   switch (ast.type) {
     case "Application":
-      return evalAst(ast.caller, env).apply(
-        null,
-        ast.args.map(arg => evalAst(arg, env))
-      );
+      const f = evalAst(ast.op, env);
+      const args = ast.args.map(arg => evalAst(arg, env));
+
+      if (typeof f === "function") return f.apply(null, args);
     case "Number":
       return ast.value;
     case "Variable":
