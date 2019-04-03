@@ -9,55 +9,137 @@ const Down = ({ children }) => (
   </section>
 );
 
+const Swap = ({ value, onChange }) => {
+  // Generate this
+  const options = [
+    {
+      type: "Number",
+      value: 0
+    },
+    {
+      type: "Variable",
+      name: ""
+    },
+    {
+      type: "Application",
+      op: {
+        type: "Variable",
+        name: ""
+      },
+      args: []
+    }
+  ];
+
+  return (
+    <select
+      value={value}
+      onChange={e =>
+        onChange(options.find(choice => choice.type === e.target.value))
+      }
+    >
+      {options.map((option, i) => (
+        <option key={i} value={option.type}>
+          {option.type}
+        </option>
+      ))}
+    </select>
+  );
+};
+
+const Node = ({ name, children, onChange }) => (
+  <div className="node">
+    <Swap value={name} onChange={onChange} />
+    {children}
+  </div>
+);
+
+const Field = ({ name, children }) => (
+  <div className="field">
+    <div className="name">{name}</div>
+    {children}
+  </div>
+);
+
+const FieldArray = ({ items, onChangeItems }) => (
+  <Down>
+    {items.map((item, i) => (
+      <div key={i}>
+        {render(item, newItem =>
+          onChangeItems([...items.slice(0, i), newItem, ...items.slice(i + 1)])
+        )}
+      </div>
+    ))}
+
+    <button
+      onClick={e => {
+        e.preventDefault();
+        // Generate this
+        const newItem = { type: "Number", value: 0 };
+        onChangeItems([...items, newItem]);
+      }}
+    >
+      +
+    </button>
+  </Down>
+);
+
 const Application = ({ op, args, onChange }) => (
-  <Across>
-    <div>
-      {render(op, newOp =>
-        onChange({
-          type: "Application",
-          op: newOp,
-          args
-        })
-      )}
-    </div>
-    <Down>
-      {args.map((arg, i) => (
-        <div key={i}>
-          {render(arg, newArg =>
+  <Node name="Application" onChange={onChange}>
+    <Across>
+      <Field name="op">
+        <div>
+          {render(op, newOp =>
             onChange({
               type: "Application",
-              op,
-              args: [...args.slice(0, i), newArg, ...args.slice(i + 1)]
+              op: newOp,
+              args
             })
           )}
         </div>
-      ))}
-    </Down>
-  </Across>
+      </Field>
+
+      <Field name="args">
+        <FieldArray
+          items={args}
+          onChangeItems={newArgs =>
+            onChange({ type: "Application", op, args: newArgs })
+          }
+        />
+      </Field>
+    </Across>
+  </Node>
 );
 
 const Number = ({ value, onChange }) => (
-  <input
-    onChange={e =>
-      onChange({
-        type: "Number",
-        value: parseInt(e.target.value || 0)
-      })
-    }
-    value={value}
-  />
+  <Node name="Number" onChange={onChange}>
+    <Field name="value">
+      <input
+        onChange={e =>
+          onChange({
+            type: "Number",
+            value: parseInt(e.target.value || 0)
+          })
+        }
+        value={value}
+      />
+    </Field>
+  </Node>
 );
 
 const Variable = ({ name, onChange }) => (
-  <input
-    onChange={e =>
-      onChange({
-        type: "Variable",
-        name: e.target.value
-      })
-    }
-    value={name}
-  />
+  <Node name="Variable" onChange={onChange}>
+    <Field name="name">
+      <input
+        onChange={e =>
+          onChange({
+            type: "Variable",
+            name: e.target.value
+          })
+        }
+        value={name}
+      />
+    </Field>
+  </Node>
 );
 
 function render(node, onChange) {
@@ -74,10 +156,10 @@ function render(node, onChange) {
 }
 
 const stdlib = {
-  "+": (a, b) => a + b,
-  "-": (a, b) => a - b,
-  "*": (a, b) => a * b,
-  "/": (a, b) => a / b
+  "+": (...args) => args.reduce((a, b) => a + b, 0),
+  "-": (...args) => args.reduce((a, b) => a - b, 0),
+  "*": (...args) => args.reduce((a, b) => a * b, 1),
+  "/": (...args) => args.reduce((a, b) => a / b, 1)
 };
 
 export default () => {
